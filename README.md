@@ -18,7 +18,7 @@ Then run the python script rename_split_files.py found in the raw_can_data folde
 ```Bash
 cd raw_can_data
 split -l 100000 large_oscope_file.csv
-python rename_split_files.py
+python file_manager.py
 ```
 
 The python script will prompt you for an identifier of your choice. 
