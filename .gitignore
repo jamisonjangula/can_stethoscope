@@ -138,5 +138,5 @@ dmypy.json
 cython_debug/
 
 /.idea
-/raw_can_data/*.csv
 /venv/
+/src/can_stethoscope/raw_can_data/
