@@ -16,10 +16,10 @@ class FileManager:
         self.raw_data_location = Path(__file__).parent / 'raw_can_data'
         # Todo: Create an interface class to communicate with user in CLI
         self.split_file_prefix = split_file_name
+        self.raw_data_suffix = "_raw_data.csv"
         self.clean_file_prefix = clean_file_name
         self.created_files: List[Path] = []
         self.scope_data: ScopeData = None
-        # Todo: Check for saved raw data if any exists
 
     @staticmethod
     def _suffix_number(file_name: str) -> int:
@@ -57,12 +57,23 @@ class FileManager:
         """Generates a list of Path's for any file in the raw_data directory which is the result of a split"""
         return [each_file for each_file in self.raw_data_location.iterdir() if self._is_split_name(each_file.name)]
 
+    def _find_existing_data(self) -> List[Path]:
+        found_files: List[Path] = []
+        for each_file in self.raw_data_location.iterdir():
+            file_name = each_file.name
+            if self.split_file_prefix in file_name and self.raw_data_suffix in file_name:
+                found_files.append(each_file)
+        return found_files
+
     def process_raw_filenames(self):
         """Formats split files, creates the data storage object, loads the raw data, and saves a clean set of data"""
         split_file_list = self._find_split_files()
         if not len(split_file_list):
-            raise FileNotFoundError(f"Unable to find any split files in directory: {self.raw_data_location}")
-
+            existing_data = self._find_existing_data()
+            if not existing_data:
+                raise FileNotFoundError("Unable to find any split or existing data"
+                                        f" in directory: {self.raw_data_location}")
+            self.created_files.extend(existing_data)
         for each_file in split_file_list:
             file_name: str = each_file.name
             new_file_name = f'{self.split_file_prefix}_{self._suffix_number(file_name)}_raw_data.csv'
@@ -85,8 +96,9 @@ class FileManager:
 
     def read_created_files(self):
         """Loads the raw data into the storage object"""
-        for each_new_file in self.created_files:
+        for index, each_new_file in enumerate(self.created_files):
             file_data_list = self.open_csv(each_new_file)
+            print(f"Reading file {index} of {len(self.created_files)}", end='\r', flush=True)
             self.scope_data.add_more_signals(file_data_list)
 
     def save_clean_data(self):

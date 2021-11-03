@@ -10,7 +10,7 @@ class ScopeData:
     """
 
     def __init__(self, start_raw_data: List[List[str]]):
-        if len(start_raw_data) <= 12:
+        if len(start_raw_data) < 12:
             raise ValueError("Data provided by oscope must contain at least 12 lines of metadata")
 
         if start_raw_data[1][0] != "Sample Interval":
@@ -34,7 +34,7 @@ class ScopeData:
             self.signal_data.append(self._process_event_line(each_event))
 
     def _process_event_line(self, line: List[str]) -> dict:
-        return {self.fieldnames[index]: line[index] for index in range(0, len(self.fieldnames))}
+        return {self.fieldnames[index]: self.str_to_float(line[index]) for index in range(0, len(self.fieldnames))}
 
     @staticmethod
     def str_to_float(input_string: str) -> float:
@@ -43,6 +43,7 @@ class ScopeData:
         sign_string = input_string[-3:-2]
         main_value = float(input_string[1:-4])
         if sign_string == '-':
-            return main_value * 10 ** (-magnitude)
+            final_value = main_value * 10 ** (-magnitude)
         else:
-            return main_value * 10 ** magnitude
+            final_value = main_value * 10 ** magnitude
+        return round(final_value, 9)

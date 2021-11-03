@@ -1,4 +1,4 @@
-###Raw Data Processing
+### Raw Data Processing
 ***
 **Assumption**
 
@@ -6,23 +6,28 @@ Raw data is generated from an Oscilloscope.
 Model: SDS1104X-E
 Two Channels are used, 
 Vertical scale:  1.0V
-Capture time period: 2ns 
+Capture time period: ~2ns 
 ***
 **Processes**
 
 A capture period results in a single large CSV file. 
 
-Files are split to be easier to track the reading process, 
-Then run the python script rename_split_files.py found in the raw_can_data folder
+large csv files need to be split to track the reading process.
+
+After splitting, running main.py will start the file processor and begin the analysis.
 
 ```Bash
 cd raw_can_data
 split -l 100000 large_oscope_file.csv
-python file_manager.py
+cd ..
+python main.py
 ```
 
-The python script will prompt you for an identifier of your choice. 
-We utilize this ID as a prefix to track the split files. 
+The python script will prompt you for two identifiers. 
+
+The first one is for the prefix added to the final data file. 
+
+The second is for how the large file should be classified in individual smaller chunk files.
 
 **Rational**
 
