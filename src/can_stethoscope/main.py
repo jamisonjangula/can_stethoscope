@@ -9,6 +9,10 @@ def main():
                                split_file_name=split_file_name)
     file_manager.process_raw_filenames()
 
+    data_processor = ProcessCanData(scope_data=file_manager.scope_data)
+
+
+
 
 
 

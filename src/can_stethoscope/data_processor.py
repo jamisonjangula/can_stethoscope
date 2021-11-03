@@ -1,11 +1,9 @@
-from file_manager import FileManager
+from data_storage import ScopeData
 
 
 class ProcessCanData:
-    def __init__(self, file_manager: FileManager):
-        self.file_manager = file_manager
-
-
+    def __init__(self, scope_data: ScopeData):
+        self.scope_data = scope_data
 
     def convert_raw_data(self):
         raw_data: list = self.file_manager.get_clean_data()
