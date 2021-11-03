@@ -1,4 +1,5 @@
 from data_storage import ScopeData
+from rise_time_analysis import plot_data
 import pandas
 
 
@@ -10,4 +11,6 @@ class ProcessCanData:
         """Read in the data from the scope_data storage object, and run basic analysis on it."""
         data_frame = pandas.DataFrame(self.scope_data.signal_data)
         print(data_frame.describe())
+
+        plot_data(self.scope_data.signal_data)
 
