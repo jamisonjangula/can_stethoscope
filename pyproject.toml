@@ -13,12 +13,11 @@ repository = "https://github.com/jamisonjangula/can_stethoscope"
 
 [tool.poetry.dependencies]
 python = "^3.8"
-
-[tool.poetry.dev-dependencies]
-pytest = "^3.4"
+pandas = "^1.3.4"
+matplotlib = "^3.4.3"
 
 [tool.poetry.scripts]
-can_stetho = "can_stethoscope.cli:main"
+can_stetho = "can-stethoscope.cli:main"
 
 [build-system]
 requires = ["poetry_core>=1.0.0"]

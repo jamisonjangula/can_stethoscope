@@ -1,7 +1,7 @@
 import csv
 from pathlib import Path
 from typing import List
-from data_storage import ScopeData
+from can_stethoscope.data_storage import ScopeData
 
 
 class FileManager:

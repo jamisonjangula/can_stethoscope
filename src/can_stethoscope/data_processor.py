@@ -1,5 +1,5 @@
-from data_storage import ScopeData
-from rise_time_analysis import plot_data
+from can_stethoscope.data_storage import ScopeData
+from can_stethoscope.rise_time_analysis import plot_data
 import pandas
 
 
