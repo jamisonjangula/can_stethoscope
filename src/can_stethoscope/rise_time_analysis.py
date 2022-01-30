@@ -74,7 +74,7 @@ def find_rise(ch, t):  # using ch2 for ch give indices of rise (ch1 gives fall)
     return (start, end)
 
 
-def plot_data(input_data: List[dict]):
+def rise_time_plot_data(input_data: List[dict]):
     time = [x['timestamp'] for x in input_data]
     ch1 = [x['ch1_v'] for x in input_data]
     ch2 = [x['ch2_v'] for x in input_data]

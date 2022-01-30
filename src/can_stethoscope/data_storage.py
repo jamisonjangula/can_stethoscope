@@ -1,4 +1,5 @@
 from typing import List
+from references.can_helpers import Measurement
 
 
 class ScopeData:
@@ -23,8 +24,7 @@ class ScopeData:
         if len(start_raw_data) > 12:
             self.add_more_signals(start_raw_data[12:])
 
-        self.signal_data: List[dict] = []
-        self.fieldnames = ["timestamp", "ch1_v", "ch2_v"]
+        self.signal_data: List[Measurement] = []
         self.total_data_duration: float
 
     def add_more_signals(self, more_signals: List[List[str]]):
@@ -33,8 +33,12 @@ class ScopeData:
             # Contains three elements, time-step, ch1_v, ch2_v
             self.signal_data.append(self._process_event_line(each_event))
 
-    def _process_event_line(self, line: List[str]) -> dict:
-        return {self.fieldnames[index]: self.str_to_float(line[index]) for index in range(0, len(self.fieldnames))}
+    def _process_event_line(self, line: List[str]) -> Measurement:
+        live_measurement = Measurement()
+        live_measurement.timestamp = self.str_to_float(line[0])
+        live_measurement.chan_1_voltage = self.str_to_float(line[1])
+        live_measurement.chan_2_voltage = self.str_to_float(line[2])
+        return live_measurement
 
     @staticmethod
     def str_to_float(input_string: str) -> float:

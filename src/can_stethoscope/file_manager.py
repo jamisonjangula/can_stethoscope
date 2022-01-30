@@ -1,7 +1,7 @@
 import csv
 from pathlib import Path
 from typing import List
-from can_stethoscope.data_storage import ScopeData
+from src.can_stethoscope.data_storage import ScopeData
 
 
 class FileManager:
@@ -17,6 +17,7 @@ class FileManager:
         # Todo: Create an interface class to communicate with user in CLI
         self.split_file_prefix = split_file_name
         self.raw_data_suffix = "_raw_data.csv"
+        self.clean_dir_suffix = "clean"
         self.clean_file_prefix = clean_file_name
         self.created_files: List[Path] = []
         self.scope_data: ScopeData = None

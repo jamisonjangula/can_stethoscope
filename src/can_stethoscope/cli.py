@@ -1,10 +1,10 @@
 import argparse
 import pkg_resources
-from can_stethoscope.file_manager import FileManager
+from src.can_stethoscope.file_manager import FileManager
 
 
 def main():
-    parser = argparse.ArgumentParser('can-stetho',
+    parser = argparse.ArgumentParser('can_stetho',
                                      description="Generate insights on CAN data from file or streamed in from hardware")
     subparsers = parser.add_subparsers(dest="subparser")
 

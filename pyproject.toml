@@ -15,9 +15,10 @@ repository = "https://github.com/jamisonjangula/can_stethoscope"
 python = "^3.8"
 pandas = "^1.3.4"
 matplotlib = "^3.4.3"
+python-can = "^3.3.4"
 
 [tool.poetry.scripts]
-can_stetho = "can-stethoscope.cli:main"
+can_stetho = "can_stethoscope.cli:main"
 
 [build-system]
 requires = ["poetry_core>=1.0.0"]

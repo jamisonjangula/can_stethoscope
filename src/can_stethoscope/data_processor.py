@@ -1,5 +1,5 @@
-from can_stethoscope.data_storage import ScopeData
-from can_stethoscope.rise_time_analysis import plot_data
+from src.can_stethoscope.data_storage import ScopeData
+from src.can_stethoscope.rise_time_analysis import rise_time_plot_data
 import pandas
 
 
@@ -12,5 +12,5 @@ class ProcessCanData:
         data_frame = pandas.DataFrame(self.scope_data.signal_data)
         print(data_frame.describe())
 
-        plot_data(self.scope_data.signal_data)
+        rise_time_plot_data(self.scope_data.signal_data)
 
