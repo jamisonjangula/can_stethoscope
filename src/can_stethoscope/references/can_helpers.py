@@ -1,5 +1,5 @@
 import enum
-import dataclasses
+from dataclasses import dataclass
 
 
 class CANBusType(enum.Enum):
@@ -16,8 +16,15 @@ class BaudRates:
         return 1 / baud_rate
 
 
-class Measurement(dataclasses):
+@dataclass
+class Measurement:
     timestamp: float
     chan_1_voltage: float
     chan_2_voltage: float
+
+
+@dataclass
+class PartialFrame:
+    bit_stream: bytearray
+    start_timestamp: float
 

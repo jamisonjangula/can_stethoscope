@@ -1,6 +1,6 @@
 import argparse
 import pkg_resources
-from src.can_stethoscope.file_manager import FileManager
+from can_stethoscope.file_manager import FileManager
 
 
 def main():

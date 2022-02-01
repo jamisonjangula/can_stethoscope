@@ -1,7 +1,7 @@
 import csv
 from pathlib import Path
 from typing import List
-from src.can_stethoscope.data_storage import ScopeData
+from can_stethoscope.data_storage import ScopeData
 
 
 class FileManager:
@@ -84,7 +84,7 @@ class FileManager:
         self.created_files.sort()
         self.init_scope_data()
         self.read_created_files()
-        self.save_clean_data()
+        # self.save_clean_data()
 
     def init_scope_data(self):
         """Generate the data storage class based upon metadata in spliced files"""

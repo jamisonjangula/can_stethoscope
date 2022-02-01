@@ -1,5 +1,5 @@
 from typing import List
-from references.can_helpers import Measurement
+from can_stethoscope.references.can_helpers import Measurement
 
 
 class ScopeData:
@@ -11,6 +11,8 @@ class ScopeData:
     """
 
     def __init__(self, start_raw_data: List[List[str]]):
+        self.signal_data: List[Measurement] = []
+        self.total_data_duration: float
         if len(start_raw_data) < 12:
             raise ValueError("Data provided by oscope must contain at least 12 lines of metadata")
 
@@ -24,9 +26,6 @@ class ScopeData:
         if len(start_raw_data) > 12:
             self.add_more_signals(start_raw_data[12:])
 
-        self.signal_data: List[Measurement] = []
-        self.total_data_duration: float
-
     def add_more_signals(self, more_signals: List[List[str]]):
         """Each line in the list is a list of each parameter"""
         for each_event in more_signals:
@@ -34,10 +33,9 @@ class ScopeData:
             self.signal_data.append(self._process_event_line(each_event))
 
     def _process_event_line(self, line: List[str]) -> Measurement:
-        live_measurement = Measurement()
-        live_measurement.timestamp = self.str_to_float(line[0])
-        live_measurement.chan_1_voltage = self.str_to_float(line[1])
-        live_measurement.chan_2_voltage = self.str_to_float(line[2])
+        live_measurement = Measurement(timestamp=self.str_to_float(line[0]),
+                                       chan_1_voltage=self.str_to_float(line[1]),
+                                       chan_2_voltage=self.str_to_float(line[2]))
         return live_measurement
 
     @staticmethod
