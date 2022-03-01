@@ -11,7 +11,7 @@ class ScopeData:
     """
 
     def __init__(self, start_raw_data: List[List[str]]):
-        self.signal_data: List[Measurement] = []
+        self.signal_measurements: List[Measurement] = []
         self.total_data_duration: float
         if len(start_raw_data) < 12:
             raise ValueError("Data provided by oscope must contain at least 12 lines of metadata")
@@ -30,7 +30,7 @@ class ScopeData:
         """Each line in the list is a list of each parameter"""
         for each_event in more_signals:
             # Contains three elements, time-step, ch1_v, ch2_v
-            self.signal_data.append(self._process_event_line(each_event))
+            self.signal_measurements.append(self._process_event_line(each_event))
 
     def _process_event_line(self, line: List[str]) -> Measurement:
         live_measurement = Measurement(timestamp=self.str_to_float(line[0]),

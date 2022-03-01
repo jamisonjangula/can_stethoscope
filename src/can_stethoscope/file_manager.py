@@ -108,5 +108,5 @@ class FileManager:
         with clean_data_path.open('w') as output_stream:
             csv_writer = csv.DictWriter(fieldnames=self.scope_data.fieldnames, f=output_stream)
             csv_writer.writeheader()
-            csv_writer.writerows(self.scope_data.signal_data)
+            csv_writer.writerows(self.scope_data.signal_measurements)
 

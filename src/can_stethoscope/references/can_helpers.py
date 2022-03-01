@@ -3,15 +3,17 @@ from dataclasses import dataclass
 
 
 class CANBusType(enum.Enum):
-    CAN_HIGH = "1"
-    CAN_LOW = "2"
+    CAN_LOW = 0
+    CAN_HIGH = 1
+    CAN_UNKNOWN = 2
 
 
 class BaudRates:
     bit_rate_250k = 250000
     bit_rate_500k = 500000
 
-    def time_diff(self, baud_rate) -> float:
+    @staticmethod
+    def time_diff(baud_rate) -> float:
         """Return time in seconds from baud rate"""
         return 1 / baud_rate
 
@@ -21,6 +23,18 @@ class Measurement:
     timestamp: float
     chan_1_voltage: float
     chan_2_voltage: float
+
+
+@dataclass
+class BinaryTimestamp:
+    byte: CANBusType
+    timestamp: float
+
+
+@dataclass
+class VoltageTimestamp:
+    voltage: float
+    timestamp: float
 
 
 @dataclass

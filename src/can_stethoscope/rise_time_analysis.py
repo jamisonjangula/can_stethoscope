@@ -9,7 +9,7 @@ Integration / Edits: Emerson
 
 '''
 NOTES:
-Haven't tested this on enought input files yet (I would guess it will not 
+Haven't tested this on enough input files yet (I would guess it will not 
 catch all of the rise/fall times and will miss some)
 TO DO's
     1) fit equation to rise/fall
