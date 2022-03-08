@@ -1,6 +1,7 @@
 import argparse
 import pkg_resources
 from can_stethoscope.file_manager import FileManager
+from can_stethoscope.data_processor import ProcessCanData
 
 
 def main():
@@ -37,7 +38,10 @@ def main():
         file_manager = FileManager(clean_file_name=args.prefix,
                                    split_file_name="can_stetho")
         file_manager.process_raw_filenames()
-    elif args.subparser == "get_messages":
-        print("WIP - Supposed to be running data_processor")
+    elif args.subparser == "get_ford_messages":
+        file_manager = FileManager('F250', 'clean_f250_2')
+        file_manager.process_raw_filenames()
+        data_processor = ProcessCanData(scope_data=file_manager.scope_data)
+        data_processor.histogram_plot()
     else:
         parser.print_help()

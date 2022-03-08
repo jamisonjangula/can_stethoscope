@@ -20,7 +20,7 @@ After splitting, running main.py will start the file processor and begin the ana
 cd raw_can_data
 split -l 100000 large_oscope_file.csv
 cd ..
-python main.py
+can_stetho
 ```
 
 The python script will prompt you for two identifiers. 
