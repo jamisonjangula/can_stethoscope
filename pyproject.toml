@@ -19,6 +19,7 @@ python-can = "^3.3.4"
 
 [tool.poetry.scripts]
 can_stetho = "can_stethoscope.cli:main"
+can_read = "can_stethoscope.main:main"
 
 [build-system]
 requires = ["poetry_core>=1.0.0"]

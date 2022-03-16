@@ -1,2 +1,2 @@
-from can_stethoscope.main import main
+from can_stethoscope.main import DataProcessor
 

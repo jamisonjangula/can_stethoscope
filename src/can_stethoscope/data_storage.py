@@ -20,7 +20,7 @@ class ScopeData:
             raise ValueError("Initial provided list does not contain correct metadata")
 
         self.model: str = start_raw_data[7][1]
-        # This next conversion assumes the time-step is less then one second.
+        # This next conversion assumes the time-step is less than one second.
         self.time_step_nanosecond: float = float(start_raw_data[1][1].split('.')[1]) * 1000000000
 
         if len(start_raw_data) > 12:
@@ -38,9 +38,13 @@ class ScopeData:
                                        chan_2_voltage=self.str_to_float(line[2]))
         return live_measurement
 
+    def sort_by_time_asc(self):
+        self.signal_measurements.sort(key=lambda x: x.timestamp)
+
     @staticmethod
     def str_to_float(input_string: str) -> float:
-        """Converts an example string to int: ex = '-3.500000E-02' """
+        """Converts an example string to float: ex = '-3.500000E-02'
+        Strange issue: The data can have a negative value"""
         magnitude = int(input_string[-2:])
         sign_string = input_string[-3:-2]
         main_value = float(input_string[1:-4])
@@ -48,4 +52,6 @@ class ScopeData:
             final_value = main_value * 10 ** (-magnitude)
         else:
             final_value = main_value * 10 ** magnitude
+        if input_string[0] == "-":
+            final_value = -final_value
         return round(final_value, 9)
