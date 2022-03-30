@@ -7,6 +7,7 @@ class DataProcessor:
         file_manager = FileManager('F250', 'clean_f250_2')
         file_manager.process_raw_filenames()
         self.data = ProcessCanData(scope_data=file_manager.scope_data)
+        self.data.generate_duration()
 
     def plot_can(self):
         self.data.filter_binary()
@@ -16,7 +17,7 @@ class DataProcessor:
         self.data.basic_stats()
 
     def get_can_frames(self):
-        self.data.generate_duration()
+        can_msg_list = self.data.generate_can_msg_list()
 
 
 def main():
