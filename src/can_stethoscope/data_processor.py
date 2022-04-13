@@ -1,8 +1,6 @@
-import pandas as pd
-
 from can_stethoscope.data_storage import ScopeData
 from can_stethoscope.conversions import ConvertMeasurements
-from can_stethoscope.references.can_frame import CanFrame
+from can_stethoscope.references.can_frame import CanFrame, PossibleFrame
 from typing import List
 
 import pandas
@@ -21,7 +19,7 @@ class ProcessCanData:
 
         self.binary_duration_map = []
         self.minimum_binary_duration = None
-        self.binary_message_list = pandas.Series()
+        self.binary_message_list = pandas.Series(dtype='float64')
 
     def generate_duration(self):
         """iterate through processed data and map timestamp and binary value to true timestamp"""
@@ -74,40 +72,47 @@ class ProcessCanData:
                                         "value_timestamp": each_row[0]})
             else:
                 value_count_map[-1]['value_count'] += 1
-
         return value_count_map
 
     def _gen_possible_frames(self, value_count_map):
         """Run through the value map and generate a possible CAN frame from this data"""
-        empty_frame = {"binary_list": [],
-                       "start_time": 0}
-        possible_frames = [empty_frame]
+        possible_frames: List[PossibleFrame] = []
+        starting_frame = PossibleFrame()
+        possible_frames.append(starting_frame)
+        new_frame_count = 0
         for each_value_count in value_count_map:
             value = each_value_count['value']
             value_count = each_value_count['value_count']
             timestamp = each_value_count['value_timestamp']
-            if value_count <= self.can_bit_stuffing:
-                # We found data that looks to be good. Lets add it
-                possible_frames[-1]["binary_list"].extend([value for x in range(0, value_count)])
-                possible_frames[-1]['start_time'] = timestamp
-            elif possible_frames[-1]['binary_list']:
-                # We dont want to append multiple empty frames, so we make sure the last frame was not empty.
-                possible_frames.append(empty_frame)
-
+            last_frame: PossibleFrame = possible_frames[-1]
+            try:
+                if value_count <= self.can_bit_stuffing:
+                    # We found data that looks to be good. Lets add it
+                    last_frame.binary_list.extend([value for x in range(0, value_count)])
+                    last_frame.start_time = timestamp
+                elif last_frame.size() > 0:
+                    new_frame_count += 1
+                    # We dont want to append multiple empty frames, so we make sure the last frame was not empty.
+                    blank_frame = PossibleFrame()
+                    possible_frames.append(blank_frame)
+            except AttributeError:
+                breakpoint()
+        print(f'found {new_frame_count} frames')
+        quit()
         return possible_frames
 
     @staticmethod
-    def _generate_true_can_frames(possible_frames):
+    def _generate_true_can_frames(possible_frames: List[PossibleFrame]) -> list:
         """Look through each possible frame and try to generate a can_frame"""
         can_frames: List[CanFrame] = []
         for each_frame in possible_frames:
             try:
-                can_frames.append(CanFrame(each_frame['binary_list'], each_frame['start_time']))
+                can_frames.append(CanFrame(each_frame))
             except ValueError:
                 print(f'unable to generate from {each_frame}')
         return can_frames
 
-    def generate_can_msg_list(self):
+    def generate_can_msg_list(self) -> list:
         """generate binary data and try to get valid CAN_messages from it"""
         binary_frame = self._generate_binary_messages()
         value_count_map = self._gen_values_map(binary_frame)

@@ -1,14 +1,23 @@
 from typing import List, Literal
 
 
+class PossibleFrame:
+    def __int__(self):
+        self.binary_list = []
+        self.start_time = 0
+
+    def size(self) -> int:
+        return len(self.binary_list)
+
+
 class CanFrame:
-    def __init__(self, binary_list: list, timestamp: float):
+    def __init__(self, frame: PossibleFrame):
         binary = Literal[0, 1]
         dominate = Literal[0]
         recessive = Literal[1]
 
-        self.binary_list = binary_list
-        self.timestamp = timestamp
+        self.binary_list = frame.binary_list
+        self.timestamp = frame.start_time
 
         self.minimum_binary_len = 52
         self.max_binary_len = 128

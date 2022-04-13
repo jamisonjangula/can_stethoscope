@@ -12,8 +12,14 @@ class FileManager:
     This code goes through all of those letters, and generates a number based upon a 'letter number' in the file name.
     Additional reference about split: https://pubs.opengroup.org/onlinepubs/9699919799/utilities/split.html
     """
-    def __init__(self, split_file_name: str, clean_file_name: str):
-        self.raw_data_location = Path(__file__).parent / 'raw_can_data'
+    def __init__(self,
+                 split_file_name: str,
+                 clean_file_name: str,
+                 additional_data_dir: str = None):
+
+        self.raw_data_location: Path = None
+        self._set_raw_data_dir(additional_data_dir)
+
         # Todo: Create an interface class to communicate with user in CLI
         self.split_file_prefix = split_file_name
         self.raw_data_suffix = "_raw_data.csv"
@@ -22,16 +28,25 @@ class FileManager:
         self.created_files: List[Path] = []
         self.scope_data: ScopeData = None
 
+    def _set_raw_data_dir(self, additional_data_dir: str):
+        self.raw_data_location = Path(__file__).parent / 'raw_can_data'
+        if additional_data_dir:
+            possible_dir = self.raw_data_location / additional_data_dir
+            if possible_dir.exists():
+                self.raw_data_location = possible_dir
+            else:
+                raise FileNotFoundError(f'Unable to find data directory at {possible_dir}')
+
     @staticmethod
     def _suffix_number(file_name: str) -> int:
-        # Todo: Create test! This was not trivial to make
         letter_values = []
-        reverse_name = file_name[::-1]  # thanks stack overflow for this one.
+        reverse_name = file_name[::-1]  # Reverses the string
         reverse_name = reverse_name[:-1]  # Strip the x from the name
         for index, value in enumerate(reverse_name):
             # For each letter passed the x in the file name
             # Take the ord of that value. ord(a) = 97, so ord(a) - 96 = 1
-            # Add each of these values to a list, and then perform the math to return a single int value
+            # Add each of these values to a list,
+            # and then perform the math to return a single int value
             letter_values.append((ord(value) - 97) + (abs(index - 1) * 26))
         return sum(letter_values) - 26
 
@@ -99,8 +114,9 @@ class FileManager:
         """Loads the raw data into the storage object"""
         for index, each_new_file in enumerate(self.created_files):
             file_data_list = self.open_csv(each_new_file)
-            print(f"Reading file {index} of {len(self.created_files)}", end='\r', flush=True)
+            print(f"Reading file {index + 1} of {len(self.created_files)}", end='\r', flush=True)
             self.scope_data.add_more_signals(file_data_list)
+        print("\n")
 
     def save_clean_data(self):
         clean_file_name = f"{self.clean_file_prefix}_{self.scope_data.model}_data.csv"

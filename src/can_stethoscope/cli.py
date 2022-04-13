@@ -2,6 +2,9 @@ import argparse
 import pkg_resources
 from can_stethoscope.file_manager import FileManager
 from can_stethoscope.data_processor import ProcessCanData
+from can_stethoscope.main import get_can_frames
+from can_stethoscope.main import main
+from can_stethoscope.main import print_basic_description
 
 
 def main():
@@ -26,10 +29,10 @@ def main():
 
     get_msg_parser = subparsers.add_parser("get-messages",
                                            help="get a list of CAN messages and their timestamp")
-    get_msg_parser.add_argument("--file",
+    get_msg_parser.add_argument("-d",
+                                "--dir",
                                 type=str,
-                                help="File Path to the imported dataset which contains voltage mesasurements",
-                                required=True)
+                                help="File Path to the imported dataset which contains voltage measurements")
 
     args = parser.parse_args()
     if args.subparser == "version":
@@ -38,10 +41,10 @@ def main():
         file_manager = FileManager(clean_file_name=args.prefix,
                                    split_file_name="can_stetho")
         file_manager.process_raw_filenames()
-    elif args.subparser == "get_ford_messages":
-        file_manager = FileManager('F250', 'clean_f250_2')
-        file_manager.process_raw_filenames()
-        data_processor = ProcessCanData(scope_data=file_manager.scope_data)
-        data_processor.histogram_plot()
+    elif args.subparser == "get-messages":
+        if args.dir:
+            get_can_frames(data_dir=args.dir)
+        else:
+            get_can_frames()
     else:
         parser.print_help()
