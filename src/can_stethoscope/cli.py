@@ -3,8 +3,7 @@ import pkg_resources
 from can_stethoscope.file_manager import FileManager
 from can_stethoscope.data_processor import ProcessCanData
 from can_stethoscope.main import get_can_frames
-from can_stethoscope.main import main
-from can_stethoscope.main import print_basic_description
+from can_stethoscope.main import plot_voltages
 
 
 def main():
@@ -34,6 +33,13 @@ def main():
                                 type=str,
                                 help="File Path to the imported dataset which contains voltage measurements")
 
+    graph_volts = subparsers.add_parser("graph-volts",
+                                        help="get a list of CAN messages and their timestamp")
+    graph_volts.add_argument("-d",
+                             "--dir",
+                             type=str,
+                             help="File Path to the imported dataset which contains voltage measurements")
+
     args = parser.parse_args()
     if args.subparser == "version":
         print(f"{pkg_resources.get_distribution('can_stethoscope').version}")
@@ -46,5 +52,10 @@ def main():
             get_can_frames(data_dir=args.dir)
         else:
             get_can_frames()
+    elif args.subparser == "graph-volts":
+        if args.dir:
+            plot_voltages(data_dir=args.dir)
+        else:
+            plot_voltages()
     else:
         parser.print_help()
