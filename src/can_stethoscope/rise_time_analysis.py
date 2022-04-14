@@ -9,7 +9,7 @@ Integration / Edits: Emerson
 
 '''
 NOTES:
-Haven't tested this on enought input files yet (I would guess it will not 
+Haven't tested this on enough input files yet (I would guess it will not 
 catch all of the rise/fall times and will miss some)
 TO DO's
     1) fit equation to rise/fall
@@ -74,7 +74,7 @@ def find_rise(ch, t):  # using ch2 for ch give indices of rise (ch1 gives fall)
     return (start, end)
 
 
-def plot_data(input_data: List[dict]):
+def rise_time_plot_data(input_data: List[dict]):
     time = [x['timestamp'] for x in input_data]
     ch1 = [x['ch1_v'] for x in input_data]
     ch2 = [x['ch2_v'] for x in input_data]

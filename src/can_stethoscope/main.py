@@ -1,20 +1,44 @@
-from data_processor import ProcessCanData
-from file_manager import FileManager
+from can_stethoscope.data_processor import ProcessCanData
+from can_stethoscope.file_manager import FileManager
+
+
+class DataProcessor:
+    def __init__(self, additional_data_dir: str = None):
+        file_manager = FileManager('F250',
+                                   'clean_f250_2',
+                                   additional_data_dir)
+        file_manager.process_raw_filenames()
+        self.data = ProcessCanData(scope_data=file_manager.scope_data)
+        self.data.generate_duration()
+
+    def plot_can(self):
+        self.data.filter_binary()
+        self.data.can_plot()
+
+    def plot_binary_durations(self):
+        self.data.describe_and_plot_binary_duration()
+
+    def print_basic_description(self):
+        self.data.basic_stats()
+
+    def get_can_frames(self) -> list:
+        return self.data.generate_can_msg_list()
 
 
 def main():
-    clean_file_name: str = input("Please provide a file name for the clean data: ")
-    split_file_name: str = input("Please provide a file name for the split raw data ")
-    file_manager = FileManager(clean_file_name=clean_file_name,
-                               split_file_name=split_file_name)
-    file_manager.process_raw_filenames()
-
-    data_processor = ProcessCanData(scope_data=file_manager.scope_data)
-    data_processor.basic_stats()
+    processor = DataProcessor()
+    processor.print_basic_description()
+    processor.get_can_frames()
+    processor.plot_binary_durations()
 
 
-if __name__ == '__main__':
-    main()
+def print_basic_description():
+    processor = DataProcessor()
+    processor.print_basic_description()
 
 
-
+def get_can_frames(data_dir=None):
+    processor = DataProcessor(additional_data_dir=data_dir)
+    can_data = processor.get_can_frames()
+    for each_frame in can_data:
+        print(each_frame)
