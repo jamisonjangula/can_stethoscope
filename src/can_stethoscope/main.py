@@ -39,4 +39,6 @@ def print_basic_description():
 
 def get_can_frames(data_dir=None):
     processor = DataProcessor(additional_data_dir=data_dir)
-    print(processor.get_can_frames())
+    can_data = processor.get_can_frames()
+    for each_frame in can_data:
+        print(each_frame)

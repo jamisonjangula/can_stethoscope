@@ -4,6 +4,7 @@ from can_stethoscope.references.can_frame import CanFrame, PossibleFrame
 from typing import List
 
 import pandas
+import numpy as np
 import matplotlib.pyplot as plt
 
 
@@ -15,11 +16,13 @@ class ProcessCanData:
         self.raw_data = pandas.DataFrame()
         self.populate_processed_data()
 
-        self.can_bit_stuffing = 5
+        self.can_bit_stuffing = 6
 
         self.binary_duration_map = []
         self.minimum_binary_duration = None
         self.binary_message_list = pandas.Series(dtype='float64')
+
+        self.debugging = False
 
     def generate_duration(self):
         """iterate through processed data and map timestamp and binary value to true timestamp"""
@@ -54,6 +57,7 @@ class ProcessCanData:
         binary_frame = self.processed_data[['binary_filtered', 'time_filtered']].groupby(
             self.processed_data['time_filtered'] // self.minimum_binary_duration).median().set_index('time_filtered')
         binary_frame = binary_frame.rename({'binary_filtered': "binary_value"}, axis='columns')
+        binary_frame['binary_value'] = binary_frame['binary_value'].apply(np.ceil)
         return binary_frame
 
     @staticmethod
@@ -77,7 +81,7 @@ class ProcessCanData:
     def _gen_possible_frames(self, value_count_map):
         """Run through the value map and generate a possible CAN frame from this data"""
         possible_frames: List[PossibleFrame] = []
-        starting_frame = PossibleFrame()
+        starting_frame = PossibleFrame(binary_list=[], start_time=0)
         possible_frames.append(starting_frame)
         new_frame_count = 0
         for each_value_count in value_count_map:
@@ -85,20 +89,15 @@ class ProcessCanData:
             value_count = each_value_count['value_count']
             timestamp = each_value_count['value_timestamp']
             last_frame: PossibleFrame = possible_frames[-1]
-            try:
-                if value_count <= self.can_bit_stuffing:
-                    # We found data that looks to be good. Lets add it
-                    last_frame.binary_list.extend([value for x in range(0, value_count)])
-                    last_frame.start_time = timestamp
-                elif last_frame.size() > 0:
-                    new_frame_count += 1
-                    # We dont want to append multiple empty frames, so we make sure the last frame was not empty.
-                    blank_frame = PossibleFrame()
-                    possible_frames.append(blank_frame)
-            except AttributeError:
-                breakpoint()
-        print(f'found {new_frame_count} frames')
-        quit()
+            if value_count <= self.can_bit_stuffing:
+                # We found data that looks to be good. Lets add it
+                last_frame.binary_list.extend([value for x in range(0, value_count)])
+                last_frame.start_time = timestamp
+            elif len(last_frame.binary_list) > 0:
+                new_frame_count += 1
+                # We dont want to append multiple empty frames, so we make sure the last frame was not empty.
+                blank_frame = PossibleFrame(binary_list=[], start_time=0)
+                possible_frames.append(blank_frame)
         return possible_frames
 
     @staticmethod
@@ -117,7 +116,12 @@ class ProcessCanData:
         binary_frame = self._generate_binary_messages()
         value_count_map = self._gen_values_map(binary_frame)
         possible_frames = self._gen_possible_frames(value_count_map)
-        return self._generate_true_can_frames(possible_frames)
+        can_messages = self._generate_true_can_frames(possible_frames)
+        if self.debugging:
+            binary_frame['x-axis'] = binary_frame.index
+            binary_frame.plot.scatter(x='x-axis', y='binary_value')
+            plt.show()
+        return can_messages
 
     def populate_processed_data(self):
         measurements = self.scope_data.signal_measurements

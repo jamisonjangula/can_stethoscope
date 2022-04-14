@@ -1,21 +1,20 @@
 from typing import List, Literal
+from dataclasses import dataclass
 
 
+binary = Literal[0, 1]
+dominate = Literal[0]
+recessive = Literal[1]
+
+
+@dataclass()
 class PossibleFrame:
-    def __int__(self):
-        self.binary_list = []
-        self.start_time = 0
-
-    def size(self) -> int:
-        return len(self.binary_list)
+    binary_list: List[binary]
+    start_time: int
 
 
 class CanFrame:
     def __init__(self, frame: PossibleFrame):
-        binary = Literal[0, 1]
-        dominate = Literal[0]
-        recessive = Literal[1]
-
         self.binary_list = frame.binary_list
         self.timestamp = frame.start_time
 
@@ -37,11 +36,35 @@ class CanFrame:
         self.data_field: List[binary] = self.binary_list[dlc_len: data_end]
         crc_len = 15
         crc_end = crc_len + data_end
-        self.crc: binary = self.binary_list[data_end: crc_end]
-        self.crc_delimiter: recessive = self.binary_list[crc_end: crc_end + 1]
-        self.ack: binary = self.binary_list[crc_end + 1: crc_end + 2]
-        self.ack_delimiter: recessive = self.binary_list[crc_end + 2: crc_end + 3]
+        self.crc: List[binary] = self.binary_list[data_end: crc_end]
+        self.crc_delimiter: recessive = self.binary_list[crc_end: crc_end + 1][0]
+        self.ack: binary = self.binary_list[crc_end + 1: crc_end + 2][0]
+        self.ack_delimiter: recessive = self.binary_list[crc_end + 2: crc_end + 3][0]
         self.end_of_frame: List[recessive] = self.binary_list[crc_end + 3:]
+
+    def __str__(self):
+        output_str = f"\n" \
+                     f"Timestamp: {self.timestamp}\n" \
+                     f"ID: {self.list_to_hex(self.can_id)}\n" \
+                     f"DLC: {self.list_to_hex(self.dlc)}\n" \
+                     f"Data: {self.list_to_hex(self.data_field)}\n"
+        return output_str
+
+    @staticmethod
+    def list_to_hex(values: list, bit_little_endian=True, byte_big_endian=True):
+        if bit_little_endian:
+            values.reverse()
+        byte_len = 8
+        hex_bits = []
+        str_values = str(values).replace("[", "").replace(", ", "").replace(']', "")
+        for length in range(0, len(values), 8):
+            end = length + byte_len
+            if end > len(values):
+                end = len(values)
+            hex_bits.append(str_values[length: end])
+        if byte_big_endian:
+            hex_bits.reverse()
+        return [hex(int(x, 2)) for x in hex_bits]
 
     def gen_data_field_len(self):
         out = 0
