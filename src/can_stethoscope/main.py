@@ -11,9 +11,9 @@ class DataProcessor:
         self.data = ProcessCanData(scope_data=file_manager.scope_data)
         self.data.generate_duration()
 
-    def plot_can(self):
+    def plot_volts(self):
         self.data.filter_binary()
-        self.data.can_plot()
+        self.data.voltage_plot()
 
     def plot_binary_durations(self):
         self.data.describe_and_plot_binary_duration()
@@ -35,6 +35,11 @@ def main():
 def print_basic_description():
     processor = DataProcessor()
     processor.print_basic_description()
+
+
+def plot_voltages(data_dir=None):
+    processor = DataProcessor(additional_data_dir=data_dir)
+    processor.plot_volts()
 
 
 def get_can_frames(data_dir=None):
