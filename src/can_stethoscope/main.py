@@ -11,9 +11,14 @@ class DataProcessor:
         self.data = ProcessCanData(scope_data=file_manager.scope_data)
         self.data.generate_duration()
 
-    def plot_volts(self):
-        self.data.filter_binary()
-        self.data.voltage_plot()
+    def _get_can_frames(self) -> list:
+        return self.data.generate_can_msg_list()
+
+    def plot_raw_volts(self):
+        self.data.plot_raw_volts()
+
+    def plot_binary(self):
+        self.data.plot_binary()
 
     def plot_binary_durations(self):
         self.data.describe_and_plot_binary_duration()
@@ -21,29 +26,12 @@ class DataProcessor:
     def print_basic_description(self):
         self.data.basic_stats()
 
-    def get_can_frames(self) -> list:
-        return self.data.generate_can_msg_list()
+    def print_can_frames(self):
+        for each_frame in self._get_can_frames():
+            print(each_frame)
 
+    def can_to_csv(self, file_name: str):
+        self.data.can_to_csv(file_name)
 
-def main():
-    processor = DataProcessor()
-    processor.print_basic_description()
-    processor.get_can_frames()
-    processor.plot_binary_durations()
-
-
-def print_basic_description():
-    processor = DataProcessor()
-    processor.print_basic_description()
-
-
-def plot_voltages(data_dir=None):
-    processor = DataProcessor(additional_data_dir=data_dir)
-    processor.plot_volts()
-
-
-def get_can_frames(data_dir=None):
-    processor = DataProcessor(additional_data_dir=data_dir)
-    can_data = processor.get_can_frames()
-    for each_frame in can_data:
-        print(each_frame)
+    def plot_single_frame(self, index):
+        self.data.plot_single_frame(index)

@@ -28,6 +28,7 @@ class ConvertMeasurements:
             threshold_min = self.changing_volt_diff[0]
         if threshold_max is None:
             threshold_max = self.changing_volt_diff[1]
+
         if input_voltage <= threshold_min:
             return CANBusType.CAN_LOW
         elif input_voltage >= threshold_max:

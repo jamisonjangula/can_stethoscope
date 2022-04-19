@@ -1,8 +1,11 @@
 from can_stethoscope.data_storage import ScopeData
 from can_stethoscope.conversions import ConvertMeasurements
 from can_stethoscope.references.can_frame import CanFrame, PossibleFrame
-from typing import List
 
+from typing import List
+from pathlib import Path
+
+import csv
 import pandas
 import numpy as np
 import matplotlib.pyplot as plt
@@ -10,19 +13,45 @@ import matplotlib.pyplot as plt
 
 class ProcessCanData:
     def __init__(self, scope_data: ScopeData):
+        # Bring in the scope data and sort it
         self.scope_data = scope_data
         self.scope_data.sort_by_time_asc()
-        self.processed_data = pandas.DataFrame()
+
+        # set up data storage objects
         self.raw_data = pandas.DataFrame()
-        self.populate_processed_data()
+        self.processed_data = pandas.DataFrame()
+        self.just_frames = []
+        self.binary_message_list = pandas.Series(dtype='float64')
+        self.converter_binary = None
 
         self.can_bit_stuffing = 6
-
         self.binary_duration_map = []
         self.minimum_binary_duration = None
-        self.binary_message_list = pandas.Series(dtype='float64')
 
         self.debugging = False
+
+        # populate the raw and processed data objects.
+        self._populate_processed_data()
+
+    def _populate_processed_data(self):
+        measurements = self.scope_data.signal_measurements
+        volts_converter = ConvertMeasurements(measurements)
+        volts_converter.measurements_to_binary_duration()
+        self.converter_binary = pandas.DataFrame(volts_converter.binary_duration)
+        self.raw_data["x_axis_time"] = [x.timestamp for x in measurements]
+        self.raw_data["can_high"] = [x.chan_1_voltage for x in measurements]
+        self.raw_data["can_low"] = [x.chan_2_voltage for x in measurements]
+        self.raw_data["voltages"] = [x.voltage for x in volts_converter.voltage_list]
+        self.raw_data["binary_list"] = [x.byte.value for x in volts_converter.binary_list]
+        self.raw_data['binary_list'] = self.raw_data['binary_list'].replace(2, 1)
+        self._filter_binary()
+
+    def _filter_binary(self):
+        filter_bin_value = 6
+        binned_binary = self.raw_data['binary_list'].groupby(self.raw_data.index // filter_bin_value).median()
+        binned_time = self.raw_data['x_axis_time'].groupby(self.raw_data.index // filter_bin_value).min()
+        self.processed_data['time_filtered'] = binned_time
+        self.processed_data['binary_filtered'] = binned_binary
 
     def generate_duration(self):
         """iterate through processed data and map timestamp and binary value to true timestamp"""
@@ -43,12 +72,6 @@ class ProcessCanData:
         value_durations = pandas.DataFrame([x['duration'] for x in self.binary_duration_map])
         counts = value_durations.value_counts().sort_index()
         self.minimum_binary_duration = counts.idxmax()[0]
-
-    def describe_and_plot_binary_duration(self):
-        value_durations = pandas.DataFrame([x['duration'] for x in self.binary_duration_map])
-        counts = value_durations.value_counts().sort_index()
-        counts.plot.bar()
-        plt.show()
 
     def _generate_binary_messages(self):
         """Generate a dataframe of binary based upon minimum duration time"""
@@ -90,25 +113,26 @@ class ProcessCanData:
             timestamp = each_value_count['value_timestamp']
             last_frame: PossibleFrame = possible_frames[-1]
             if value_count <= self.can_bit_stuffing:
-                # We found data that looks to be good. Lets add it
+                # We found data that looks to be good. Let's add it
                 last_frame.binary_list.extend([value for x in range(0, value_count)])
                 last_frame.start_time = timestamp
             elif len(last_frame.binary_list) > 0:
                 new_frame_count += 1
-                # We dont want to append multiple empty frames, so we make sure the last frame was not empty.
+                # We don't want to append multiple empty frames, so we make sure the last frame was not empty.
                 blank_frame = PossibleFrame(binary_list=[], start_time=0)
                 possible_frames.append(blank_frame)
         return possible_frames
 
-    @staticmethod
-    def _generate_true_can_frames(possible_frames: List[PossibleFrame]) -> list:
+    def _generate_true_can_frames(self, possible_frames: List[PossibleFrame]) -> list:
         """Look through each possible frame and try to generate a can_frame"""
         can_frames: List[CanFrame] = []
         for each_frame in possible_frames:
+            if not each_frame.binary_list:
+                continue
             try:
-                can_frames.append(CanFrame(each_frame))
-            except ValueError:
-                print(f'unable to generate from {each_frame}')
+                can_frames.append(CanFrame(each_frame, self.minimum_binary_duration))
+            except ValueError as e:
+                print(f'{e} {each_frame}')
         return can_frames
 
     def generate_can_msg_list(self) -> list:
@@ -123,22 +147,15 @@ class ProcessCanData:
             plt.show()
         return can_messages
 
-    def populate_processed_data(self):
-        measurements = self.scope_data.signal_measurements
-        volts_converter = ConvertMeasurements(measurements)
-        volts_converter.measurements_to_binary_duration()
-        self.raw_data["x_axis_time"] = [x.timestamp for x in measurements]
-        self.raw_data["can_high"] = [x.chan_1_voltage for x in measurements]
-        self.raw_data["can_low"] = [x.chan_2_voltage for x in measurements]
-        self.raw_data["voltages"] = [x.voltage for x in volts_converter.voltage_list]
-        self.raw_data["binary_list"] = [x.byte.value for x in volts_converter.binary_list]
-        self.filter_binary()
-
-    def filter_binary(self, filter_bin_value=8):
-        binned_binary = self.raw_data['binary_list'].groupby(self.raw_data.index // filter_bin_value).median()
-        binned_time = self.raw_data['x_axis_time'].groupby(self.raw_data.index // filter_bin_value).min()
-        self.processed_data['time_filtered'] = binned_time
-        self.processed_data['binary_filtered'] = binned_binary
+    def can_to_csv(self, output_file: str):
+        output = []
+        data = self.generate_can_msg_list()
+        for each_frame in data:
+            output.append(each_frame.to_dict())
+        with Path(f'{output_file}.csv').open('w') as output_stream:
+            csv_writer = csv.DictWriter(fieldnames=output[0].keys(), f=output_stream)
+            csv_writer.writeheader()
+            csv_writer.writerows(output)
 
     def basic_stats(self):
         """Read in the data from the scope_data storage object, and run basic analysis on it."""
@@ -147,12 +164,36 @@ class ProcessCanData:
         data_frame = pandas.DataFrame(self.scope_data.signal_measurements)
         print(data_frame.describe())
 
-    def histogram_plot(self):
+    def describe_and_plot_binary_duration(self):
+        value_durations = pandas.DataFrame([x['duration'] for x in self.binary_duration_map])
+        counts = value_durations.value_counts().sort_index()
+        counts.plot.bar()
+        plt.show()
+
+    def _generate_just_binary(self):
+        proc_data = self.processed_data[['binary_filtered', 'time_filtered']].set_index('time_filtered')
+        for each_frame in self.generate_can_msg_list():
+            data = proc_data.loc[each_frame.timestamp: each_frame.time_end]
+            if data.empty:
+                breakpoint()
+            self.just_frames.append({'frame_data': data, "can_frame": each_frame})
+
+    def plot_single_frame(self, index):
+        self._generate_just_binary()
+        single_frame = self.just_frames[index]
+        fig, a = plt.subplots(1, 1)
+        breakpoint()
+        a.plot(single_frame['frame_data'])
+        a.vlines(single_frame['can_frame'].times, 0, 1)
+        a.set_xlabel('time since recording')
+        a.set_title = str(single_frame['can_frame'])
+        plt.show()
+
+    def plot_binary(self):
         self.processed_data['binary_filtered'].plot()
         plt.show()
 
-    def voltage_plot(self):
-        self.filter_binary()
+    def plot_raw_volts(self):
         self.raw_data["can_high"].plot()
         self.raw_data['can_low'].plot()
         self.raw_data['voltages'].plot()
