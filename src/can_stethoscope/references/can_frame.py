@@ -49,7 +49,8 @@ class CanFrame:
         self.end_of_frame: List[recessive] = self.binary_list[crc_end + 3:]
 
         self.time_end = self.timestamp + bit_len * (len(self.binary_list) + 7)
-        self.times = [time_can_id, time_dlc, time_dlc_end, time_dlc_start]
+        self.times = [time_can_id, time_dlc, time_dlc_end, time_dlc_start, self.time_end]
+        self.every_sample = [self.timestamp + x * bit_len for x in range(len(self.binary_list))]
 
     def __str__(self):
         output_str = f"\n" \
@@ -58,6 +59,9 @@ class CanFrame:
                      f"DLC: {self.list_to_hex(self.dlc)}\n" \
                      f"Data: {self.list_to_hex(self.data_field)}\n"
         return output_str
+
+    def print_title(self):
+        return f"ID:{self.list_to_hex(self.can_id)} DLC:{self.list_to_hex(self.dlc)} Data:{self.list_to_hex(self.data_field)}"
 
     def to_dict(self):
         output_dict = {"Timestamp": self.timestamp,

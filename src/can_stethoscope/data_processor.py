@@ -24,9 +24,9 @@ class ProcessCanData:
         self.binary_message_list = pandas.Series(dtype='float64')
         self.converter_binary = None
 
-        self.can_bit_stuffing = 6
+        self.inter_frame_separation = 7
         self.binary_duration_map = []
-        self.minimum_binary_duration = None
+        self.min_bit_time = None
 
         self.debugging = False
 
@@ -47,11 +47,13 @@ class ProcessCanData:
         self._filter_binary()
 
     def _filter_binary(self):
-        filter_bin_value = 6
+        filter_bin_value = 3
         binned_binary = self.raw_data['binary_list'].groupby(self.raw_data.index // filter_bin_value).median()
+        binned_volts = self.raw_data['voltages'].groupby(self.raw_data.index // filter_bin_value).median()
         binned_time = self.raw_data['x_axis_time'].groupby(self.raw_data.index // filter_bin_value).min()
         self.processed_data['time_filtered'] = binned_time
         self.processed_data['binary_filtered'] = binned_binary
+        self.processed_data['volts'] = binned_volts
 
     def generate_duration(self):
         """iterate through processed data and map timestamp and binary value to true timestamp"""
@@ -71,14 +73,14 @@ class ProcessCanData:
                 self.binary_duration_map[-1]['duration'] = round(time_diff, 13)
         value_durations = pandas.DataFrame([x['duration'] for x in self.binary_duration_map])
         counts = value_durations.value_counts().sort_index()
-        self.minimum_binary_duration = counts.idxmax()[0]
+        self.min_bit_time = counts.idxmax()[0]
 
     def _generate_binary_messages(self):
         """Generate a dataframe of binary based upon minimum duration time"""
         min_time_value = self.processed_data['time_filtered'].min()
         self.processed_data['time_filtered'] = self.processed_data['time_filtered'] - min_time_value
         binary_frame = self.processed_data[['binary_filtered', 'time_filtered']].groupby(
-            self.processed_data['time_filtered'] // self.minimum_binary_duration).median().set_index('time_filtered')
+            self.processed_data['time_filtered'] // self.min_bit_time).median().set_index('time_filtered')
         binary_frame = binary_frame.rename({'binary_filtered': "binary_value"}, axis='columns')
         binary_frame['binary_value'] = binary_frame['binary_value'].apply(np.ceil)
         return binary_frame
@@ -103,21 +105,26 @@ class ProcessCanData:
 
     def _gen_possible_frames(self, value_count_map):
         """Run through the value map and generate a possible CAN frame from this data"""
+        # initialize the possible frame list
         possible_frames: List[PossibleFrame] = []
         starting_frame = PossibleFrame(binary_list=[], start_time=0)
         possible_frames.append(starting_frame)
-        new_frame_count = 0
+
         for each_value_count in value_count_map:
+            # Get the previous values, and current key values
             value = each_value_count['value']
             value_count = each_value_count['value_count']
             timestamp = each_value_count['value_timestamp']
             last_frame: PossibleFrame = possible_frames[-1]
-            if value_count <= self.can_bit_stuffing:
+
+            # possible frames are separated by the same value repeating more than 7 times
+            if value_count <= self.inter_frame_separation:
                 # We found data that looks to be good. Let's add it
                 last_frame.binary_list.extend([value for x in range(0, value_count)])
-                last_frame.start_time = timestamp
+                # If this is the first time we found valid data, set the start time.
+                if last_frame.start_time == 0:
+                    last_frame.start_time = timestamp
             elif len(last_frame.binary_list) > 0:
-                new_frame_count += 1
                 # We don't want to append multiple empty frames, so we make sure the last frame was not empty.
                 blank_frame = PossibleFrame(binary_list=[], start_time=0)
                 possible_frames.append(blank_frame)
@@ -130,7 +137,7 @@ class ProcessCanData:
             if not each_frame.binary_list:
                 continue
             try:
-                can_frames.append(CanFrame(each_frame, self.minimum_binary_duration))
+                can_frames.append(CanFrame(each_frame, self.min_bit_time))
             except ValueError as e:
                 print(f'{e} {each_frame}')
         return can_frames
@@ -171,23 +178,37 @@ class ProcessCanData:
         plt.show()
 
     def _generate_just_binary(self):
-        proc_data = self.processed_data[['binary_filtered', 'time_filtered']].set_index('time_filtered')
-        for each_frame in self.generate_can_msg_list():
-            data = proc_data.loc[each_frame.timestamp: each_frame.time_end]
-            if data.empty:
-                breakpoint()
+        frame_list = self.generate_can_msg_list()
+        proc_data = self.processed_data[['binary_filtered', 'time_filtered', 'volts']].set_index('time_filtered')
+        for each_frame in frame_list:
+            time_start = each_frame.timestamp - 4 * self.min_bit_time
+            data = proc_data.loc[time_start: each_frame.time_end]
             self.just_frames.append({'frame_data': data, "can_frame": each_frame})
 
-    def plot_single_frame(self, index):
+    def plot_single_frame(self, index, every_sample, show_volts):
         self._generate_just_binary()
-        single_frame = self.just_frames[index]
+        single_frame: dict = self.just_frames[index]
         fig, a = plt.subplots(1, 1)
-        breakpoint()
+        if not show_volts:
+            single_frame['frame_data'].drop('volts', inplace=True)
         a.plot(single_frame['frame_data'])
-        a.vlines(single_frame['can_frame'].times, 0, 1)
+        a.vlines(single_frame['can_frame'].times, -.1, 1.1, colors='r')
+        if every_sample:
+            a.vlines(single_frame['can_frame'].every_sample, -.05, 1.05, colors='g')
         a.set_xlabel('time since recording')
-        a.set_title = str(single_frame['can_frame'])
+        a.set_title = str(single_frame['can_frame'].print_title())
         plt.show()
+
+    def plot_every_frame(self, show_volts):
+        self._generate_just_binary()
+        fig, a = plt.subplots(len(self.just_frames), 1)
+        for index, single_frame in enumerate(self.just_frames):
+            if not show_volts:
+                single_frame['frame_data'].drop('volts', inplace=True)
+            a.plot(single_frame['frame_data'])
+            a.set_xlabel('time since recording')
+            a.set_title = str(single_frame['can_frame'].print_title())
+            plt.show()
 
     def plot_binary(self):
         self.processed_data['binary_filtered'].plot()

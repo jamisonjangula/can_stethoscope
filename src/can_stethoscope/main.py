@@ -31,7 +31,13 @@ class DataProcessor:
             print(each_frame)
 
     def can_to_csv(self, file_name: str):
+        if '.csv' == file_name[-4:]:
+            file_name = file_name[:-4]
         self.data.can_to_csv(file_name)
 
-    def plot_single_frame(self, index):
-        self.data.plot_single_frame(index)
+    def plot_single_frame(self, index, every_sample=False, show_volts=False):
+        self.data.plot_single_frame(index, every_sample, show_volts)
+
+    def plot_every_frame(self, show_volts=False):
+        self.data.plot_every_frame(show_volts)
+

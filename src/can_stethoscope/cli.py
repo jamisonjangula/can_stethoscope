@@ -32,7 +32,7 @@ def main():
                                   help="File Path to the imported dataset which contains voltage measurements")
 
     can_frames_csv = subparsers.add_parser("can-frames-to-csv",
-                                           help="get a list of CAN messages and their timestamp")
+                                           help="save all the raw frame data to a csv file")
     can_frames_csv.add_argument("file",
                                 type=str,
                                 help="File Path to record to")
@@ -42,16 +42,32 @@ def main():
                                 help="File Path to the imported dataset which contains voltage measurements")
 
     plot_raw_volts = subparsers.add_parser("plot-raw-volts",
-                                           help="get a list of CAN messages and their timestamp")
+                                           help="graph raw voltage measurements")
     plot_raw_volts.add_argument("-d",
                                 "--dir",
                                 type=str,
                                 help="File Path to the imported dataset which contains voltage measurements")
 
     plot_single_frame = subparsers.add_parser("plot-single-frame",
-                                              help="get a list of CAN messages and their timestamp")
+                                              help="graph a single can frame in the data recorded")
     plot_single_frame.add_argument("index",
                                    type=int)
+    plot_single_frame.add_argument("-e",
+                                   help="displays a line where every sample was taken",
+                                   action='store_true')
+    plot_single_frame.add_argument("-v",
+                                   help="displays raw voltage",
+                                   action='store_true')
+    plot_single_frame.add_argument("-d",
+                                   "--dir",
+                                   type=str,
+                                   help="File Path to the imported dataset which contains voltage measurements")
+
+    plot_single_frame = subparsers.add_parser("plot-every-frame",
+                                              help="graph every can frame")
+    plot_single_frame.add_argument("-v",
+                                   help="displays raw voltage",
+                                   action='store_true')
     plot_single_frame.add_argument("-d",
                                    "--dir",
                                    type=str,
@@ -89,7 +105,10 @@ def main():
         data_processor.plot_raw_volts()
     elif args.subparser == "plot-single-frame":
         data_processor = DataProcessor(additional_data_dir=args.dir)
-        data_processor.plot_single_frame(args.index)
+        data_processor.plot_single_frame(args.index, args.e, args.v)
+    elif args.subparser == "plot-every-frame":
+        data_processor = DataProcessor(additional_data_dir=args.dir)
+        data_processor.plot_every_frame(args.v)
     elif args.subparser == "plot-binary":
         data_processor = DataProcessor(additional_data_dir=args.dir)
         data_processor.plot_binary()
