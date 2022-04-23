@@ -12,41 +12,39 @@ def main():
     subparsers.add_parser("version",
                           help="Displays can-stetho version")
 
-    process_csv_parser = subparsers.add_parser("process-oscope-csv",
-                                               help="prepare data for analysis")
-    process_csv_parser.add_argument("--file",
-                                    type=str,
-                                    help="File Path to file to import",
-                                    required=True)
-    process_csv_parser.add_argument("--prefix",
-                                    type=str,
-                                    default="stetho_cleaned",
-                                    help="File prefix for final cleaned data file",
-                                    required=True)
+    process_raw = subparsers.add_parser("process-raw",
+                                        help="prepare data for analysis")
+    process_raw.add_argument("dir",
+                             default="raw_can_data",
+                             type=str,
+                             help="string of the path to the directory that contains the raw data")
+    process_raw.add_argument("--prefix",
+                             type=str,
+                             help="string to appear at the beginning of the processed data files")
 
     print_can_frames = subparsers.add_parser("print-can-frames",
                                              help="get a list of CAN messages and their timestamp")
-    print_can_frames.add_argument("-d",
-                                  "--dir",
+    print_can_frames.add_argument("--dir",
+                                  default="raw_can_data",
                                   type=str,
-                                  help="File Path to the imported dataset which contains voltage measurements")
+                                  help="string of the path to the directory that contains the raw data")
 
     can_frames_csv = subparsers.add_parser("can-frames-to-csv",
                                            help="save all the raw frame data to a csv file")
     can_frames_csv.add_argument("file",
                                 type=str,
                                 help="File Path to record to")
-    can_frames_csv.add_argument("-d",
-                                "--dir",
+    can_frames_csv.add_argument("--dir",
+                                default="raw_can_data",
                                 type=str,
-                                help="File Path to the imported dataset which contains voltage measurements")
+                                help="string of the path to the directory that contains the raw data")
 
     plot_raw_volts = subparsers.add_parser("plot-raw-volts",
                                            help="graph raw voltage measurements")
-    plot_raw_volts.add_argument("-d",
-                                "--dir",
+    plot_raw_volts.add_argument("--dir",
+                                default="raw_can_data",
                                 type=str,
-                                help="File Path to the imported dataset which contains voltage measurements")
+                                help="string of the path to the directory that contains the raw data")
 
     plot_single_frame = subparsers.add_parser("plot-single-frame",
                                               help="graph a single can frame in the data recorded")
@@ -58,62 +56,65 @@ def main():
     plot_single_frame.add_argument("-v",
                                    help="displays raw voltage",
                                    action='store_true')
-    plot_single_frame.add_argument("-d",
-                                   "--dir",
+    plot_single_frame.add_argument("--dir",
+                                   default="raw_can_data",
                                    type=str,
-                                   help="File Path to the imported dataset which contains voltage measurements")
+                                   help="string of the path to the directory that contains the raw data")
 
     plot_single_frame = subparsers.add_parser("plot-every-frame",
                                               help="graph every can frame")
+    plot_single_frame.add_argument("file",
+                                   type=str,
+                                   help="File Path to record to")
     plot_single_frame.add_argument("-v",
                                    help="displays raw voltage",
                                    action='store_true')
-    plot_single_frame.add_argument("-d",
-                                   "--dir",
+    plot_single_frame.add_argument("--dir",
+                                   default="raw_can_data",
                                    type=str,
-                                   help="File Path to the imported dataset which contains voltage measurements")
+                                   help="string of the path to the directory that contains the raw data")
 
     plot_binary = subparsers.add_parser("plot-binary",
                                         help="graph binary values by time")
-    plot_binary.add_argument("-d",
-                             "--dir",
+    plot_binary.add_argument("--dir",
+                             default="raw_can_data",
                              type=str,
-                             help="File Path to the imported dataset which contains voltage measurements")
+                             help="string of the path to the directory that contains the raw data")
 
     plot_binary_durations = subparsers.add_parser("plot-binary-durations",
                                                   help="graph binary duration lengths")
-    plot_binary_durations.add_argument("-d",
-                                       "--dir",
+    plot_binary_durations.add_argument("--dir",
+                                       default="raw_can_data",
                                        type=str,
-                                       help="File Path to the imported dataset which contains voltage measurements")
+                                       help="string of the path to the directory that contains the raw data")
 
     args = parser.parse_args()
     if args.subparser == "version":
         print(f"{pkg_resources.get_distribution('can_stethoscope').version}")
-    elif args.subparser == "process-oscope-csv":
-        file_manager = FileManager(clean_file_name=args.prefix,
-                                   split_file_name="can_stetho")
-        file_manager.process_raw_filenames()
+    elif args.subparser == "process-raw":
+        file_manager = FileManager(file_dir=args.dir,
+                                   file_prefix=args.prefix)
+        file_manager.load_created_files()
     elif args.subparser == "print-can-frames":
-        data_processor = DataProcessor(additional_data_dir=args.dir)
+        data_processor = DataProcessor(file_dir=args.dir)
         data_processor.print_can_frames()
     elif args.subparser == "can-frames-to-csv":
-        data_processor = DataProcessor(additional_data_dir=args.dir)
+        data_processor = DataProcessor(file_dir=args.dir)
         data_processor.can_to_csv(args.file)
     elif args.subparser == "plot-raw-volts":
-        data_processor = DataProcessor(additional_data_dir=args.dir)
+        data_processor = DataProcessor(file_dir=args.dir)
         data_processor.plot_raw_volts()
     elif args.subparser == "plot-single-frame":
-        data_processor = DataProcessor(additional_data_dir=args.dir)
+        data_processor = DataProcessor(file_dir=args.dir)
         data_processor.plot_single_frame(args.index, args.e, args.v)
     elif args.subparser == "plot-every-frame":
-        data_processor = DataProcessor(additional_data_dir=args.dir)
-        data_processor.plot_every_frame(args.v)
+        data_processor = DataProcessor(file_dir=args.dir)
+        data_processor.plot_every_frame(args.file, args.v)
     elif args.subparser == "plot-binary":
-        data_processor = DataProcessor(additional_data_dir=args.dir)
+        data_processor = DataProcessor(file_dir=args.dir)
         data_processor.plot_binary()
     elif args.subparser == "plot-binary-durations":
-        data_processor = DataProcessor(additional_data_dir=args.dir)
+        data_processor = DataProcessor(file_dir=args.dir)
         data_processor.plot_binary_durations()
     else:
         parser.print_help()
