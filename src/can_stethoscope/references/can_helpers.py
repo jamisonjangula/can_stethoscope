@@ -44,22 +44,46 @@ class PartialFrame:
     start_timestamp: float
 
 
-class CanVoltStats:
-    def __init__(self, volts: pd.Series):
-        self.volts = volts
+class CanFrameStats:
+    def __init__(self, single_frame: pd.DataFrame):
+        self.volts = single_frame['volts']
+        self.binary = single_frame['binary_filtered']
         self.mean_expected = 2.5
         self.can_low_min = .3
-        self.can_high_min = 1.7
-        self.can_high_max = 3.3
+        self.can_high_min = 2.1
+        self.can_high_max = 2.9
         self.total_high_range = (self.can_high_max - self.can_high_min) / 2
 
         self.average = self._average_volt_high()
+        self.average_ratio = self._mean_stats()
+        self.mode = self._mode_volt_high()
 
     def _average_volt_high(self) -> int:
-        return self.volts[self.volts > self.can_low_min].median()
+        return self.volts[self.volts > self.can_low_min].median().round(decimals=3)
 
-    def mean_stats(self):
+    def _mode_volt_high(self) -> int:
+        return self.volts[self.volts > self.can_low_min].mode().round(decimals=3)
+
+    def _mean_stats(self):
         ratio = abs(self.mean_expected - self.average) / self.total_high_range
-        average_ratio = round(ratio, 3)
+        return round(ratio, 3)
+
+
+class StatsCollector:
+    def __init__(self):
+        self.frames_stats = []
+        self.averages = []
+        self.modes = []
+        self.ratios = []
+
+    def add_frame(self, single_frame: pd.DataFrame):
+        frame = CanFrameStats(single_frame)
+        self.frames_stats.append(frame)
+        self.averages.append(frame.average)
+        self.modes.append(frame.mode)
+        self.ratios.append(frame.average_ratio)
+
+
+
 
 

@@ -28,6 +28,9 @@ def main():
                                   default="raw_can_data",
                                   type=str,
                                   help="string of the path to the directory that contains the raw data")
+    print_can_frames.add_argument("--prefix",
+                                  type=str,
+                                  help="string to appear at the beginning of the processed data files")
 
     can_frames_csv = subparsers.add_parser("can-frames-to-csv",
                                            help="save all the raw frame data to a csv file")
@@ -38,6 +41,9 @@ def main():
                                 default="raw_can_data",
                                 type=str,
                                 help="string of the path to the directory that contains the raw data")
+    can_frames_csv.add_argument("--prefix",
+                                type=str,
+                                help="string to appear at the beginning of the processed data files")
 
     plot_raw_volts = subparsers.add_parser("plot-raw-volts",
                                            help="graph raw voltage measurements")
@@ -45,6 +51,9 @@ def main():
                                 default="raw_can_data",
                                 type=str,
                                 help="string of the path to the directory that contains the raw data")
+    plot_raw_volts.add_argument("--prefix",
+                                type=str,
+                                help="string to appear at the beginning of the processed data files")
 
     plot_single_frame = subparsers.add_parser("plot-single-frame",
                                               help="graph a single can frame in the data recorded")
@@ -60,19 +69,25 @@ def main():
                                    default="raw_can_data",
                                    type=str,
                                    help="string of the path to the directory that contains the raw data")
+    plot_single_frame.add_argument("--prefix",
+                                   type=str,
+                                   help="string to appear at the beginning of the processed data files")
 
-    plot_single_frame = subparsers.add_parser("plot-every-frame",
-                                              help="graph every can frame")
-    plot_single_frame.add_argument("file",
-                                   type=str,
-                                   help="File Path to record to")
-    plot_single_frame.add_argument("-v",
-                                   help="displays raw voltage",
-                                   action='store_true')
-    plot_single_frame.add_argument("--dir",
-                                   default="raw_can_data",
-                                   type=str,
-                                   help="string of the path to the directory that contains the raw data")
+    plot_every_frame = subparsers.add_parser("plot-every-frame",
+                                             help="graph every can frame")
+    plot_every_frame.add_argument("file",
+                                  type=str,
+                                  help="File Path to record to")
+    plot_every_frame.add_argument("-v",
+                                  help="displays raw voltage",
+                                  action='store_true')
+    plot_every_frame.add_argument("--dir",
+                                  default="raw_can_data",
+                                  type=str,
+                                  help="string of the path to the directory that contains the raw data")
+    plot_every_frame.add_argument("--prefix",
+                                  type=str,
+                                  help="string to appear at the beginning of the processed data files")
 
     plot_binary = subparsers.add_parser("plot-binary",
                                         help="graph binary values by time")
@@ -80,6 +95,9 @@ def main():
                              default="raw_can_data",
                              type=str,
                              help="string of the path to the directory that contains the raw data")
+    plot_binary.add_argument("--prefix",
+                             type=str,
+                             help="string to appear at the beginning of the processed data files")
 
     plot_binary_durations = subparsers.add_parser("plot-binary-durations",
                                                   help="graph binary duration lengths")
@@ -87,6 +105,9 @@ def main():
                                        default="raw_can_data",
                                        type=str,
                                        help="string of the path to the directory that contains the raw data")
+    plot_binary_durations.add_argument("--prefix",
+                                       type=str,
+                                       help="string to appear at the beginning of the processed data files")
 
     args = parser.parse_args()
     if args.subparser == "version":
@@ -96,25 +117,32 @@ def main():
                                    file_prefix=args.prefix)
         file_manager.load_created_files()
     elif args.subparser == "print-can-frames":
-        data_processor = DataProcessor(file_dir=args.dir)
+        data_processor = DataProcessor(file_dir=args.dir,
+                                       file_prefix=args.prefix)
         data_processor.print_can_frames()
     elif args.subparser == "can-frames-to-csv":
-        data_processor = DataProcessor(file_dir=args.dir)
+        data_processor = DataProcessor(file_dir=args.dir,
+                                       file_prefix=args.prefix)
         data_processor.can_to_csv(args.file)
     elif args.subparser == "plot-raw-volts":
-        data_processor = DataProcessor(file_dir=args.dir)
+        data_processor = DataProcessor(file_dir=args.dir,
+                                       file_prefix=args.prefix)
         data_processor.plot_raw_volts()
     elif args.subparser == "plot-single-frame":
-        data_processor = DataProcessor(file_dir=args.dir)
+        data_processor = DataProcessor(file_dir=args.dir,
+                                       file_prefix=args.prefix)
         data_processor.plot_single_frame(args.index, args.e, args.v)
     elif args.subparser == "plot-every-frame":
-        data_processor = DataProcessor(file_dir=args.dir)
+        data_processor = DataProcessor(file_dir=args.dir,
+                                       file_prefix=args.prefix)
         data_processor.plot_every_frame(args.file, args.v)
     elif args.subparser == "plot-binary":
-        data_processor = DataProcessor(file_dir=args.dir)
+        data_processor = DataProcessor(file_dir=args.dir,
+                                       file_prefix=args.prefix)
         data_processor.plot_binary()
     elif args.subparser == "plot-binary-durations":
-        data_processor = DataProcessor(file_dir=args.dir)
+        data_processor = DataProcessor(file_dir=args.dir,
+                                       file_prefix=args.prefix)
         data_processor.plot_binary_durations()
     else:
         parser.print_help()
