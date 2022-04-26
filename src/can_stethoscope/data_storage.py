@@ -45,13 +45,23 @@ class ScopeData:
     def str_to_float(input_string: str) -> float:
         """Converts an example string to float: ex = '-3.500000E-02'
         Strange issue: The data can have a negative value"""
-        magnitude = int(input_string[-2:])
-        sign_string = input_string[-3:-2]
-        main_value = float(input_string[1:-4])
+        start_sign = input_string[0]
+        input_string = input_string.lower()
+        if "e" not in input_string:
+            return round(float(input_string), 9)
+        if start_sign in ['+', '-']:
+            magnitude = int(input_string[-2:])
+            sign_string = input_string[-3:-2]
+            main_value = float(input_string[1:-4])
+        else:
+            magnitude = int(input_string[-2:])
+            sign_string = input_string[-3:-2]
+            main_value = float(input_string[:-4])
+
         if sign_string == '-':
             final_value = main_value * 10 ** (-magnitude)
         else:
             final_value = main_value * 10 ** magnitude
-        if input_string[0] == "-":
+        if start_sign == "-":
             final_value = -final_value
         return round(final_value, 9)

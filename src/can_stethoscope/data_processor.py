@@ -1,8 +1,9 @@
 from can_stethoscope.data_storage import ScopeData
 from can_stethoscope.conversions import ConvertMeasurements
 from can_stethoscope.references.can_frame import CanFrame, PossibleFrame
+from can_stethoscope.references.can_helpers import CanFrameStats, StatsCollector
 
-from typing import List
+from typing import List, Dict
 from pathlib import Path
 
 import csv
@@ -28,6 +29,8 @@ class ProcessCanData:
         self.binary_duration_map = []
         self.min_bit_time = None
 
+        self.stats = StatsCollector()
+
         self.debugging = False
 
         # populate the raw and processed data objects.
@@ -39,12 +42,14 @@ class ProcessCanData:
         volts_converter.measurements_to_binary_duration()
         self.converter_binary = pandas.DataFrame(volts_converter.binary_duration)
         self.raw_data["x_axis_time"] = [x.timestamp for x in measurements]
-        self.raw_data["can_high"] = [x.chan_1_voltage for x in measurements]
-        self.raw_data["can_low"] = [x.chan_2_voltage for x in measurements]
+        self.raw_data["can_high"] = [x.chan_2_voltage for x in measurements]
+        self.raw_data["can_low"] = [x.chan_1_voltage for x in measurements]
         self.raw_data["voltages"] = [x.voltage for x in volts_converter.voltage_list]
         self.raw_data["binary_list"] = [x.byte.value for x in volts_converter.binary_list]
-        self.raw_data['binary_list'] = self.raw_data['binary_list'].replace(2, 1)
+        # We generate binary values of unknown values, lets sort them out.
+        self.raw_data['binary_list'].replace(2, 1, inplace=True)
         self._filter_binary()
+        print('done processing data')
 
     def _filter_binary(self):
         filter_bin_value = 3
@@ -82,7 +87,7 @@ class ProcessCanData:
         binary_frame = self.processed_data[['binary_filtered', 'time_filtered']].groupby(
             self.processed_data['time_filtered'] // self.min_bit_time).median().set_index('time_filtered')
         binary_frame = binary_frame.rename({'binary_filtered': "binary_value"}, axis='columns')
-        binary_frame['binary_value'] = binary_frame['binary_value'].apply(np.ceil)
+        binary_frame['binary_value'] = binary_frame['binary_value'].apply(np.round)
         return binary_frame
 
     @staticmethod
@@ -184,31 +189,68 @@ class ProcessCanData:
             time_start = each_frame.timestamp - 4 * self.min_bit_time
             data = proc_data.loc[time_start: each_frame.time_end]
             self.just_frames.append({'frame_data': data, "can_frame": each_frame})
+            self.stats.add_frame(data)
 
     def plot_single_frame(self, index, every_sample, show_volts):
         self._generate_just_binary()
-        single_frame: dict = self.just_frames[index]
-        fig, a = plt.subplots(1, 1)
+        single_frame: Dict[str, pandas.DataFrame, CanFrame] = self.just_frames[index]
+        fig, (ax, hist) = plt.subplots(1, 2, sharey='all')
+        volts_stats: CanFrameStats = self.stats.frames_stats[index]
+
+        ax.plot(single_frame['frame_data'].index, single_frame['frame_data']['binary_filtered'], label="Binary Value")
         if not show_volts:
-            single_frame['frame_data'].drop('volts', inplace=True)
-        a.plot(single_frame['frame_data'])
-        a.vlines(single_frame['can_frame'].times, -.1, 1.1, colors='r')
+            ax.set_yticks([0, 1], labels=['Low', 'High'])
+            fig.delaxes(hist)
+        else:
+            ax.hlines(y=volts_stats.mean_expected,
+                      xmin=single_frame['frame_data'].index.min(),
+                      xmax=single_frame['frame_data'].index.max(),
+                      colors='g',
+                      label="Expected CAN voltage")
+            ax.fill_between(single_frame['frame_data'].index,
+                            volts_stats.can_high_min,
+                            volts_stats.can_high_max,
+                            alpha=0.2,
+                            linewidth=0,
+                            label="voltage range")
+            ax.plot(single_frame['frame_data'].index, single_frame['frame_data']['volts'], label="CAN Voltage")
+            print(self.stats.averages)
+            print(self.stats.modes)
+            print(self.stats.ratios)
+            hist.hist(self.stats.averages,
+                      bins=6,
+                      orientation='horizontal')
+            hist.set_xlabel('Number of detections')
+            hist.set_ylabel('transceivers detected')
+            hist.minorticks_off()
+            ax.set_ylabel('Volts [V]')
         if every_sample:
-            a.vlines(single_frame['can_frame'].every_sample, -.05, 1.05, colors='g')
-        a.set_xlabel('time since recording')
-        a.set_title = str(single_frame['can_frame'].print_title())
+            ax.vlines(single_frame['can_frame'].times, -.1, 1.1, colors='r')
+            ax.vlines(single_frame['can_frame'].every_sample, -.05, 1.05, colors='g')
+        ax.set_xlabel("Time [s]")
+        plt.title(single_frame['can_frame'].print_title())
+        ax.legend(loc='best')
         plt.show()
 
-    def plot_every_frame(self, show_volts):
+    def plot_every_frame(self, file, show_volts):
         self._generate_just_binary()
         fig, a = plt.subplots(len(self.just_frames), 1)
         for index, single_frame in enumerate(self.just_frames):
+            frame_data = single_frame['frame_data']
+            # Normalize the timestamps
+            frame_data.reset_index(inplace=True)
+            start_time = frame_data['time_filtered'].iloc[0]
+            frame_data['time_filtered'] = frame_data['time_filtered'] - start_time
+            frame_data.set_index('time_filtered', inplace=True)
             if not show_volts:
-                single_frame['frame_data'].drop('volts', inplace=True)
-            a.plot(single_frame['frame_data'])
-            a.set_xlabel('time since recording')
-            a.set_title = str(single_frame['can_frame'].print_title())
-            plt.show()
+                frame_data.drop('volts', axis=1, inplace=True)
+                a[index].set_yticks([0, 1], labels=['Low', 'High'])
+            a[index].plot(frame_data)
+            a[index].set_xlabel(single_frame['can_frame'].print_title())
+
+        fig.set_size_inches(8, 2 * len(self.just_frames))
+        fig.tight_layout()
+        plt.savefig(f'{file}.pdf', format='pdf')
 
     def plot_binary(self):
         self.processed_data['binary_filtered'].plot()
@@ -218,6 +260,7 @@ class ProcessCanData:
         self.raw_data["can_high"].plot()
         self.raw_data['can_low'].plot()
         self.raw_data['voltages'].plot()
+        plt.legend(["CAN High V", "CAN Low V", "High - Low V"])
         plt.show()
 
     def can_plot(self):
@@ -229,4 +272,3 @@ class ProcessCanData:
         plot_frame.plot(x='timestamp', y='CAN data', kind='scatter', ax=ax1)
         plot_frame.plot(x='timestamp', y='voltages', kind='scatter', ax=ax2)
         plt.show()
-

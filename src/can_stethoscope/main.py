@@ -3,11 +3,10 @@ from can_stethoscope.file_manager import FileManager
 
 
 class DataProcessor:
-    def __init__(self, additional_data_dir: str = None):
-        file_manager = FileManager('F250',
-                                   'clean_f250_2',
-                                   additional_data_dir)
-        file_manager.process_raw_filenames()
+    def __init__(self, file_dir, file_prefix=None):
+        file_manager = FileManager(file_dir,
+                                   file_prefix)
+        file_manager.read_file_data()
         self.data = ProcessCanData(scope_data=file_manager.scope_data)
         self.data.generate_duration()
 
@@ -38,6 +37,6 @@ class DataProcessor:
     def plot_single_frame(self, index, every_sample=False, show_volts=False):
         self.data.plot_single_frame(index, every_sample, show_volts)
 
-    def plot_every_frame(self, show_volts=False):
-        self.data.plot_every_frame(show_volts)
+    def plot_every_frame(self, file, show_volts=False):
+        self.data.plot_every_frame(file, show_volts)
 
